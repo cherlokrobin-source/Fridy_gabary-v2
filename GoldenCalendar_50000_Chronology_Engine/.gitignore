@@ -1,0 +1,22 @@
+.git_corrupt_backup/
+.git_backup_before_fix/
+node_modules/
+*.logdata/
+build/
+CMakeFiles/
+CMakeCache.txt
+*.o
+*.a
+data/
+# Gabary build artifacts
+Gabary/build/
+Gabary/CMakeFiles/
+Gabary/CMakeCache.txt
+Gabary/Makefile
+Gabary/cmake_install.cmake
+Gabary/CTestTestfile.cmake
+Gabary/*Test
+Gabary/GabaryConsole
+Gabary/TemporalServer
+Gabary/GoldenCalendarCLI
+build_clean/

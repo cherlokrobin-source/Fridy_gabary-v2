@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Digital Astrolabe | Gabary V2</title>
+
+<link rel="stylesheet" href="style.css">
+
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+
+</head>
+
+
+<body>
+
+
+<header>
+
+<h1>DIGITAL ASTROLABE</h1>
+
+<h2>Gabary V2 Temporal Engine</h2>
+
+<p>
+Golden Calendar 50,000-Year Chronology Research Platform
+based on Global Solar Day coordinates.
+</p>
+
+</header>
+
+
+
+<section class="status-card">
+
+<h3>ENGINE STATUS</h3>
+
+<div class="status-grid">
+
+<div>
+<span>Status</span>
+<strong id="engineStatus">Loading...</strong>
+</div>
+
+
+<div>
+<span>Engine</span>
+<strong id="engineVersion">---</strong>
+</div>
+
+
+<div>
+<span>Validation</span>
+<strong id="engineTests">---</strong>
+</div>
+
+</div>
+
+</section>
+
+
+
+
+<section class="clock-card">
+
+<h3>GLOBAL TIME</h3>
+
+<div id="clock">
+00:00:00
+</div>
+
+<div id="date">
+Loading date...
+</div>
+
+</section>
+
+
+
+
+
+<section class="dashboard-card">
+
+<h3>
+TEMPORAL DASHBOARD
+</h3>
+
+
+<div class="dashboard-grid">
+
+
+<div class="card">
+<span>Global Solar Day</span>
+<strong id="globalSolarDay">---</strong>
+</div>
+
+
+<div class="card">
+<span>Solar Date</span>
+<strong id="solarDate">---</strong>
+</div>
+
+
+<div class="card">
+<span>Day Of Year</span>
+<strong id="dayOfYear">---</strong>
+</div>
+
+
+<div class="card">
+<span>Week Index</span>
+<strong id="weekIndex">---</strong>
+</div>
+
+
+<div class="card">
+<span>Cycle Number</span>
+<strong id="cycleNumber">---</strong>
+</div>
+
+
+<div class="card">
+<span>Historical Index</span>
+<strong id="historicalIndex">---</strong>
+</div>
+
+
+<div class="card">
+<span>Engine</span>
+<strong id="engineName">---</strong>
+</div>
+
+
+<div class="card">
+<span>Validation</span>
+<strong id="validationState">---</strong>
+</div>
+
+
+</div>
+
+</section>
+<section class="query-card">
+
+<h3>
+GLOBAL SOLAR DAY QUERY
+</h3>
+
+
+<p>
+Enter a Global Solar Day ID from the 50,000 year timeline.
+</p>
+
+
+<input
+id="dayInput"
+type="number"
+placeholder="Example: 739823">
+
+
+<button onclick="searchDay()">
+QUERY ENGINE
+</button>
+
+
+</section>
+
+
+
+
+<section class="report-card">
+
+<h3>
+GABARY V2 TEXT REPORT
+</h3>
+
+
+<pre id="textReport">
+
+Waiting for report...
+
+</pre>
+
+
+</section>
+
+
+
+<section class="timeline-card">
+
+<h3>
+TIMELINE EXPLORER
+</h3>
+
+<p>
+Explore the 50,000-Year Solar Chronology by Global Solar Day ID.
+</p>
+
+
+<div class="timeline-controls">
+
+    <input
+        id="timelineStart"
+        type="number"
+        placeholder="Start Day ID">
+
+    <input
+        id="timelineEnd"
+        type="number"
+        placeholder="End Day ID">
+
+    <button onclick="loadTimeline()">
+        VIEW TIMELINE
+    </button>
+
+</div>
+
+<div class="timeline-quick-range">
+
+    <span>QUICK RANGE</span>
+
+    <button onclick="setTimelineRange(1)">
+        1 DAY
+    </button>
+
+    <button onclick="setTimelineRange(7)">
+        7 DAYS
+    </button>
+
+    <button onclick="setTimelineRange(30)">
+        30 DAYS
+    </button>
+
+</div>
+
+
+<div
+id="timelineResult"
+class="timeline-result">
+
+<div class="timeline-empty">
+Waiting for timeline query...
+</div>
+
+</div>
+
+
+</section>
+
+<section class="console">
+
+<h3>
+RAW JSON DATA
+</h3>
+
+
+<pre id="result">
+
+Waiting for JSON...
+
+</pre>
+
+
+</section>
+
+
+
+
+
+<footer>
+
+
+<p>
+GABARY V2 Architecture
+</p>
+
+
+<p>
+Digital Astrolabe Interface
+</p>
+
+
+<p>
+Golden Calendar Project
+</p>
+
+
+<p>
+Developed by Nemimeche Benaissa
+</p>
+
+
+<p>
+© 2026 Golden Calendar Project
+</p>
+
+
+</footer>
+
+
+
+<script src="app.js"></script>
+
+
+</body>
+
+</html>

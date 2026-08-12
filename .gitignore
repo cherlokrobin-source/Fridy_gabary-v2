@@ -1,0 +1,35 @@
+# Build artifacts
+build/
+build_clean/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+CTestTestfile.cmake
+cmake_install.cmake
+Makefile
+
+# Compiled binaries and libraries
+*.o
+*.a
+*.so
+*.dylib
+*.exe
+
+# Generated archives / datasets
+data/archive_*.csv
+data/archive_*.json
+**/data/archive_*.csv
+**/data/archive_*.json
+
+# Large generated datasets
+*.tar.gz
+*.zip
+*.7z
+
+# Runtime / temporary files
+*.log
+*.tmp
+*.swp
+
+# Local Git metadata accidentally copied into project trees
+.git/
