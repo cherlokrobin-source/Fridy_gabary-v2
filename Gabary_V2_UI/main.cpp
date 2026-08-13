@@ -1,365 +1,266 @@
-#include <ftxui/component/captured_mouse.hpp>
-#include <ftxui/component/component.hpp>
-#include <ftxui/component/component_options.hpp>
-#include <ftxui/component/screen_interactive.hpp>
 #include <ftxui/dom/elements.hpp>
-#include <iostream>
-#include <fstream>
-#include <sstream>
+#include <ftxui/component/screen_interactive.hpp>
+#include <ftxui/component/component.hpp>
+#include <ftxui/component/event.hpp>
+#include "SolarEngineV2.h"
+#include "GlobalSolarDay.h"
 #include <string>
 #include <vector>
-#include <utility>
-#include <chrono>
-#include <ctime>
 #include <iomanip>
-#include <thread>
-
-#include "GlobalSolarDay.h"
-#include "SolarEngineV2.h"
+#include <sstream>
 
 using namespace ftxui;
 
-enum ThemeMode { GOLDEN, CYBERPUNK, MATRIX };
-ThemeMode current_theme = GOLDEN;
-
-// إرجاع لون العنوان حسب الثيم
-Color get_primary_color() {
-  if (current_theme == CYBERPUNK) return Color::Magenta;
-  if (current_theme == MATRIX) return Color::Green;
-  return Color::Yellow; // GOLDEN
-}
-
-Color get_accent_color() {
-  if (current_theme == CYBERPUNK) return Color::Cyan;
-  if (current_theme == MATRIX) return Color::GreenLight;
-  return Color::Cyan;
-}
-
-// دالة الوقت الحالي
-std::string get_current_time_string() {
-  auto now = std::chrono::system_clock::now();
-  auto in_time_t = std::chrono::system_clock::to_time_t(now);
-  std::stringstream ss;
-  ss << std::put_time(std::localtime(&in_time_t), "%H:%M:%S");
-  return ss.str();
-}
-
-// دالة رسم الكرة الأرضية المتحركة (Animated Globe)
-Element build_animated_globe(int frame) {
-  static const std::vector<std::vector<std::string>> globes = {
-      {"     .---.     ", "   /  .-.  \\   ", "  |  ( o )  |  ", "  |   `-'   |  ", "   \\       /   ", "     `---'     "},
-      {"     .---.     ", "   /  .-.  \\   ", "  |  (  o)  |  ", "  |   `-'   |  ", "   \\       /   ", "     `---'     "},
-      {"     .---.     ", "   /  .-.  \\   ", "  |  (   )  |  ", "  |  (o)    |  ", "   \\       /   ", "     `---'     "},
-      {"     .---.     ", "   /  .-.  \\   ", "  |  (o  )  |  ", "  |   `-'   |  ", "   \\       /   ", "     `--- me'  "}
-  };
-  
-  auto current_frame = globes[frame % globes.size()];
-  Elements lines;
-  for (const auto& l : current_frame) {
-    lines.push_back(text(l) | color(get_accent_color()));
-  }
-  return vbox(std::move(lines)) | center;
-}
-
-// حساب الفصل الفلكي
-std::string get_season_name(int solar_month) {
-  if (solar_month >= 1 && solar_month <= 3) return "🌱 Spring (الربيع)";
-  if (solar_month >= 4 && solar_month <= 6) return "☀️ Summer (الصيف)";
-  if (solar_month >= 7 && solar_month <= 9) return "🍂 Autumn (الخريف)";
-  return "❄️ Winter (الشتاء)";
-}
-
-// دالة بناء شبكة التقويم الشهري
-Element build_monthly_grid(const Gabary::GlobalSolarDay& current_day, Gabary::SolarEngineV2& engine) {
-  int64_t days_into_month = current_day.solarDay - 1;
-  int64_t month_start_id = current_day.dayId - days_into_month;
-
-  Elements header_row = {
-      text(" Fr ") | bold | color(get_accent_color()),
-      text(" Sa ") | bold | color(get_accent_color()),
-      text(" Su ") | bold | color(get_accent_color()),
-      text(" Mo ") | bold | color(get_accent_color()),
-      text(" Tu ") | bold | color(get_accent_color()),
-      text(" We ") | bold | color(get_accent_color()),
-      text(" Th ") | bold | color(get_accent_color()),
-  };
-
-  std::vector<Elements> grid_rows;
-  grid_rows.push_back(header_row);
-
-  Elements current_row;
-  int start_weekday_idx = static_cast<int>((month_start_id - 1) % 7);
-
-  for (int i = 0; i < start_weekday_idx; ++i) {
-    current_row.push_back(text("   "));
-  }
-
-  for (int day = 1; day <= 31; ++day) {
-    int64_t target_id = month_start_id + (day - 1);
-    if (target_id > 1825650) break;
+Element CustomProgressBar(float ratio, int width = 14) {
+    if (ratio < 0.0f) ratio = 0.0f;
+    if (ratio > 1.0f) ratio = 1.0f;
     
-    Gabary::GlobalSolarDay day_info = engine.buildDay(target_id);
-    if (day_info.solarMonth != current_day.solarMonth) break;
+    int filled = static_cast<int>(ratio * width);
+    std::string bar = "[";
+    for (int i = 0; i < width; ++i) {
+        if (i < filled) bar += "█";
+        else bar += "░";
+    }
+    bar += "]";
+    return text(bar) | color(Color::Cyan) | bold;
+}
 
-    std::string day_str = (day < 10 ? " " : "") + std::to_string(day) + " ";
-    
-    if (day == current_day.solarDay) {
-      current_row.push_back(text(day_str) | bold | bgcolor(Color::Green) | color(Color::Black));
-    } else {
-      current_row.push_back(text(day_str) | color(Color::White));
+Element GenerateAcademicGrid(int start_offset, int total_days, int current_day_num, int prev_month_days) {
+    Elements rows;
+    Elements current_row;
+
+    for (int i = start_offset - 1; i >= 0; --i) {
+        int day_val = prev_month_days - i;
+        std::string day_str = (day_val < 10 ? "  " : " ") + std::to_string(day_val) + "  ";
+        current_row.push_back(text(day_str) | dim | color(Color::GrayDark));
     }
 
-    if (current_row.size() == 7) {
-      grid_rows.push_back(current_row);
-      current_row.clear();
+    for (int day = 1; day <= total_days; ++day) {
+        std::string day_str = (day < 10 ? "  " : " ") + std::to_string(day) + "  ";
+        
+        if (day == current_day_num) {
+            current_row.push_back(text(day_str) | bgcolor(Color::Green) | color(Color::Black) | bold);
+        } else {
+            current_row.push_back(text(day_str) | color(Color::CyanLight));
+        }
+
+        if (current_row.size() == 7) {
+            rows.push_back(hbox(current_row));
+            current_row.clear();
+        }
     }
-  }
 
-  if (!current_row.empty()) {
-    while (current_row.size() < 7) {
-      current_row.push_back(text("   "));
+    int next_month_day = 1;
+    while (rows.size() < 6) {
+        while (current_row.size() < 7) {
+            std::string day_str = (next_month_day < 10 ? "  " : " ") + std::to_string(next_month_day++) + "  ";
+            current_row.push_back(text(day_str) | dim | color(Color::GrayDark));
+        }
+        rows.push_back(hbox(current_row));
+        current_row.clear();
     }
-    grid_rows.push_back(current_row);
-  }
 
-  Elements final_table;
-  for (auto& row : grid_rows) {
-    final_table.push_back(hbox(std::move(row)));
-  }
-
-  std::string month_title = " MONTHLY GRID (" + std::to_string(current_day.solarYear) + "-" + std::to_string(current_day.solarMonth) + ") ";
-
-  return window(
-      text(month_title) | bold | color(get_primary_color()),
-      vbox(std::move(final_table)) | center
-  );
+    return vbox(rows);
 }
 
-// دالة رسم اللوحة الهندسية
-Element build_geometric_charts(const Gabary::GlobalSolarDay& active_day) {
-  int approx_day_in_year = static_cast<int>((active_day.solarMonth - 1) * 30 + active_day.solarDay);
-  double days_in_year = active_day.leapYear ? 366.0 : 365.0;
-  double year_progress = (double)approx_day_in_year / days_in_year;
-  if (year_progress > 1.0) year_progress = 1.0;
-
-  double month_progress = (double)active_day.solarDay / 30.0;
-  if (month_progress > 1.0) month_progress = 1.0;
-
-  double global_horizon = (double)active_day.dayId / 1825650.0;
-  int millennium = (active_day.solarYear - 1) / 1000 + 1;
-
-  return window(
-      text(" GEOMETRIC & ASTRO METRICS ") | bold | color(Color::GreenLight),
-      vbox({
-          hbox({
-              text(" Year Progress  : ") | color(Color::White),
-              gauge(year_progress) | color(get_accent_color()),
-              text(" " + std::to_string((int)(year_progress * 100)) + "%") | bold | color(get_accent_color())
-          }),
-          hbox({
-              text(" Month Progress : ") | color(Color::White),
-              gauge(month_progress) | color(Color::Green),
-              text(" " + std::to_string((int)(month_progress * 100)) + "%") | bold | color(Color::Green)
-          }),
-          hbox({
-              text(" 50K Horizon    : ") | color(Color::White),
-              gauge(global_horizon) | color(get_primary_color()),
-              text(" " + std::to_string((int)(global_horizon * 100)) + "%") | bold | color(get_primary_color())
-          }),
-          separator(),
-          vbox({
-              hbox({
-                  text(" Season Phase: ") | color(Color::GrayDark),
-                  text(get_season_name(active_day.solarMonth)) | bold | color(Color::Magenta),
-                  filler(),
-                  text("Millennium  : ") | color(Color::GrayDark),
-                  text("M" + std::to_string(millennium) + " / 50") | bold | color(get_primary_color())
-              }),
-              hbox({
-                  text(" Day Status  : ") | color(Color::GrayDark),
-                  text("Day " + std::to_string(approx_day_in_year) + " of " + std::to_string((int)days_in_year)) | color(Color::BlueLight),
-                  filler(),
-                  text("Leap Type   : ") | color(Color::GrayDark),
-                  text(active_day.leapYear ? "366 Days (Leap)" : "365 Days (Norm)") | bold | color(active_day.leapYear ? Color::Green : Color::White)
-              })
-          })
-      })
-  );
+std::string GetDayName(int64_t day_id) {
+    static const std::string days[] = {"Friday", "Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"};
+    int idx = static_cast<int>((day_id - 1) % 7);
+    if (idx < 0) idx += 7;
+    return days[idx];
 }
 
-// دالة التوقيع وتفاصيل المحرك
-Element build_signature_footer(const Gabary::GlobalSolarDay& active_day) {
-  int day_of_week_num = static_cast<int>((active_day.dayId - 1) % 7) + 1;
-
-  return window(
-      text(" ADVANCED DAY COORDINATES & ARCHITECTURE ") | bold | color(Color::MagentaLight),
-      vbox({
-          hbox({
-              text(" ABSOLUTE ID  : ") | bold | color(Color::White),
-              text("#" + std::to_string(active_day.dayId) + " / 1825650") | bold | color(get_accent_color()),
-              filler(),
-              text("WEEKDAY INDEX : ") | bold | color(Color::White),
-              text("Day " + std::to_string(day_of_week_num) + " (" + active_day.weekName + ")") | color(Color::Green)
-          }),
-          hbox({
-              text(" ENGINE Core  : ") | bold | color(Color::White),
-              text("Gabary SolarEngineV2 [Precision: 100%]") | color(get_primary_color()),
-              filler(),
-              text("LATENCY       : ") | bold | color(Color::White),
-              text("< 0.001 ms") | color(get_accent_color())
-          }),
-          separator(),
-          hbox({
-              text(" ENGINEER     : ") | bold | color(Color::Green),
-              text("Nemimeche Benaissa") | bold | color(Color::White),
-              filler(),
-              text("PROJECT       : ") | bold | color(Color::Magenta),
-              text("Gabary V2 TUI System") | color(get_primary_color())
-          })
-      })
-  );
-}
-
-// تصدير الشامل بعدة صيغ (TXT / JSON / CSV)
-std::string export_all_formats(const Gabary::GlobalSolarDay& active_day) {
-  // TXT
-  std::ofstream txt("export_report.txt");
-  txt << "=== GABARY V2 REPORT ===\nID: " << active_day.dayId 
-      << "\nDate: " << active_day.solarYear << "-" << active_day.solarMonth << "-" << active_day.solarDay 
-      << "\nDay: " << active_day.weekName << "\nEngineer: Nemimeche Benaissa\n";
-  txt.close();
-
-  // JSON
-  std::ofstream json("export_report.json");
-  json << "{\n  \"dayId\": " << active_day.dayId 
-       << ",\n  \"solarYear\": " << active_day.solarYear 
-       << ",\n  \"solarMonth\": " << active_day.solarMonth 
-       << ",\n  \"solarDay\": " << active_day.solarDay 
-       << ",\n  \"weekName\": \"" << active_day.weekName << "\""
-       << ",\n  \"engineer\": \"Nemimeche Benaissa\"\n}\n";
-  json.close();
-
-  // CSV
-  std::ofstream csv("export_report.csv");
-  csv << "DayID,SolarYear,SolarMonth,SolarDay,WeekName,Engineer\n";
-  csv << active_day.dayId << "," << active_day.solarYear << "," << active_day.solarMonth << "," 
-      << active_day.solarDay << "," << active_day.weekName << ",Nemimeche Benaissa\n";
-  csv.close();
-
-  return "💾 EXPORT COMPLETE: Saved (.txt, .json, .csv)";
-}
-
-std::string process_user_request(const std::string& input, Gabary::SolarEngineV2& engine, Gabary::GlobalSolarDay& out_day) {
-  if (input.empty()) return "Waiting for input...";
-  std::stringstream ss(input); std::string tag; ss >> tag;
-
-  int64_t target_id = 1;
-
-  if (tag == "date" || (isdigit(tag[0]) && input.find(' ') != std::string::npos)) {
-      int64_t y = 0, m = 0, d = 0;
-      if (tag == "date") ss >> y >> m >> d; else { std::stringstream full_ss(input); full_ss >> y >> m >> d; }
-      target_id = engine.toDayId(y, m, d);
-  } else {
-      try {
-        target_id = std::stoll(input);
-      } catch (...) { return "⚠️ ERROR: Invalid ID."; }
-  }
-
-  if (target_id < 1 || target_id > 1825650) return "⚠️ ERROR: Out of bounds [1 - 1,825,650]";
-
-  out_day = engine.buildDay(target_id);
-  return "🟢 NAVIGATION SUCCESS:\n• ID: " + std::to_string(out_day.dayId) + 
-         "\n• Date: " + std::to_string(out_day.solarYear) + "-" + std::to_string(out_day.solarMonth) + "-" + std::to_string(out_day.solarDay) + 
-         "\n• Day: " + out_day.weekName;
+std::string GetSeason(int day_of_year) {
+    if (day_of_year >= 80 && day_of_year < 172) return "Spring";
+    if (day_of_year >= 172 && day_of_year < 264) return "Summer";
+    if (day_of_year >= 264 && day_of_year < 355) return "Autumn";
+    return "Winter";
 }
 
 int main() {
-  Gabary::SolarEngineV2 engine;
-  auto screen = ScreenInteractive::Fullscreen();
-  std::string command_input = "";
-  int anim_frame = 0;
-  
-  Gabary::GlobalSolarDay active_day = engine.buildDay(21582);
-  std::string output_display = process_user_request("21582", engine, active_day);
-  
-  auto update_out = [&](std::string val) { 
-    output_display = process_user_request(val, engine, active_day); 
-  };
+    auto screen = ScreenInteractive::Fullscreen();
 
-  auto navigate_by_offset = [&](int64_t offset) {
-    int64_t next_id = active_day.dayId + offset;
-    if (next_id < 1) next_id = 1;
-    if (next_id > 1825650) next_id = 1825650;
-    update_out(std::to_string(next_id));
-  };
-  
-  auto nav_c = Container::Vertical({
-      Button(" [⏮ DAY 1   ] ", [&] { update_out("1"); }),
-      Button(" [⏪ -10,000Y] ", [&] { navigate_by_offset(-3652425); }),
-      Button(" [🎯 MID 25K ] ", [&] { update_out("912825"); }),
-      Button(" [⏩ +10,000Y] ", [&] { navigate_by_offset(3652425); }),
-      Button(" [⏭ DAY MAX ] ", [&] { update_out("1825650"); }),
-      Button(" [💾 EXPORT ] ", [&] { output_display = export_all_formats(active_day); })
-  });
-  
-  auto input_f = Input(&command_input, "Enter Day ID or YYYY MM DD...");
-  auto main_c = Container::Vertical({nav_c, input_f});
+    Gabary::SolarEngineV2 engine;
+    int64_t current_day_id = 1;
+    std::string input_text = "1";
 
-  // خيط الانيميشن والتحديث
-  std::thread refresh_thread([&] {
-    while (true) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
-      anim_frame++;
-      screen.PostEvent(Event::Custom);
-    }
-  });
-  refresh_thread.detach();
+    auto input_comp = Input(&input_text, "Enter Day ID...");
 
-  auto renderer = Renderer(main_c, [&] {
-    auto grid_view = build_monthly_grid(active_day, engine);
-    auto charts_view = build_geometric_charts(active_day);
-    auto signature_view = build_signature_footer(active_day);
-    auto earth_view = build_animated_globe(anim_frame);
-    std::string time_str = get_current_time_string();
-
-    return vbox({
-        text(">>> GABARY V2 TEMPORAL DASHBOARD <<<") | bold | color(get_primary_color()) | center,
-        hbox({
-            vbox({
-                window(text(" TIMELINE ") | color(get_primary_color()), nav_c->Render() | size(WIDTH, EQUAL, 18)),
-                window(text(" GLOBE ") | color(Color::Green), earth_view | size(WIDTH, EQUAL, 18)),
-                window(text(" LIVE TIME ") | color(get_accent_color()), text(time_str) | bold | color(get_primary_color()) | center | size(WIDTH, EQUAL, 18))
-            }),
-            vbox({
-                window(text(" CONSOLE ") | color(Color::Magenta), paragraph(output_display)),
-                grid_view,
-                charts_view,
-                signature_view,
-                window(text(" INPUT ") | color(Color::Green), input_f->Render()),
-                text(" ⬅️/➡️: Day  |  ⬆️/⬇️: Month  |  F2: Switch Theme ") | dim | center
-            }) | flex
-        })
+    auto btn_prev = Button(" [<< -10KY] ", [&] { 
+        current_day_id = std::max((int64_t)1, current_day_id - 3652425); 
+        input_text = std::to_string(current_day_id); 
     });
-  });
+    auto btn_next = Button(" [>> +10KY] ", [&] { 
+        current_day_id += 3652425; 
+        input_text = std::to_string(current_day_id); 
+    });
+    auto btn_mid = Button(" [(🎯) MID 25K] ", [&] { 
+        current_day_id = 9131062; 
+        input_text = std::to_string(current_day_id); 
+    });
 
-  auto event_handler = CatchEvent(renderer, [&](Event event) {
-    if (event == Event::F2) {
-      if (current_theme == GOLDEN) current_theme = CYBERPUNK;
-      else if (current_theme == CYBERPUNK) current_theme = MATRIX;
-      else current_theme = GOLDEN;
-      return true;
-    }
-    if (event == Event::ArrowLeft) { navigate_by_offset(-1); return true; }
-    if (event == Event::ArrowRight) { navigate_by_offset(1); return true; }
-    if (event == Event::ArrowUp) { navigate_by_offset(-30); return true; }
-    if (event == Event::ArrowDown) { navigate_by_offset(30); return true; }
-    if (event == Event::PageUp) { navigate_by_offset(-365); return true; }
-    if (event == Event::PageDown) { navigate_by_offset(365); return true; }
-    if (event == Event::Home) { update_out("1"); return true; }
-    if (event == Event::End) { update_out("1825650"); return true; }
-    return false;
-  });
+    auto main_container = Container::Vertical({
+        input_comp,
+        btn_prev,
+        btn_next,
+        btn_mid
+    });
 
-  screen.Loop(event_handler);
-  return 0;
+    auto catch_event_container = CatchEvent(main_container, [&](Event event) {
+        if (event == Event::ArrowRight) {
+            current_day_id++;
+            input_text = std::to_string(current_day_id);
+            return true;
+        }
+        if (event == Event::ArrowLeft) {
+            if (current_day_id > 1) current_day_id--;
+            input_text = std::to_string(current_day_id);
+            return true;
+        }
+        if (event == Event::ArrowUp) {
+            current_day_id += 30;
+            input_text = std::to_string(current_day_id);
+            return true;
+        }
+        if (event == Event::ArrowDown) {
+            if (current_day_id > 30) current_day_id -= 30;
+            input_text = std::to_string(current_day_id);
+            return true;
+        }
+        return false;
+    });
+
+    auto renderer = Renderer(catch_event_container, [&]() -> Element {
+        try {
+            int64_t parsed_id = std::stoll(input_text);
+            if (parsed_id > 0) current_day_id = parsed_id;
+        } catch (...) {}
+
+        Gabary::GlobalSolarDay day = engine.buildDay(current_day_id);
+
+        bool is_leap = (day.solarYear % 4 == 0 && day.solarYear % 100 != 0) || (day.solarYear % 400 == 0);
+        int64_t cycle_400_id = (current_day_id - 1) / 146097 + 1;
+        int century_num = (day.solarYear - 1) / 100 + 1;
+
+        auto timeline_box = window(text(" 🧭 NAV ") | bold | color(Color::Cyan), vbox({
+            btn_prev->Render(),
+            btn_mid->Render(),
+            btn_next->Render()
+        }));
+
+        auto globe_box = window(text(" 🪐 ASTRO ") | bold | color(Color::Yellow), vbox({
+            text("Season : " + GetSeason(day.dayOfYear)) | color(Color::Green),
+            text("Century: #" + std::to_string(century_num)),
+            text("400Y   : #" + std::to_string(cycle_400_id)) | color(Color::Magenta)
+        }));
+
+        auto status_box = window(text(" CORE ") | bold | color(Color::Green), vbox({
+            text("Status: ⚡ RUN") | color(Color::Green) | bold,
+            text("UDL Sidi Bel Abbès") | dim
+        }));
+
+        auto left_column = vbox({
+            timeline_box,
+            globe_box,
+            status_box
+        }) | size(WIDTH, EQUAL, 20);
+
+        std::string day_name = GetDayName(current_day_id);
+        std::string full_date_str = day_name + ", " + std::to_string(day.solarYear) + "-" + std::to_string(day.solarMonth) + "-" + std::to_string(day.solarDay);
+
+        auto console_box = window(text(" 🖥️ CONSOLE ") | bold | color(Color::Magenta), vbox({
+            text("🟢 " + full_date_str) | color(Color::Yellow) | bold,
+            text("⚡ " + std::string(is_leap ? "LEAP YEAR (366d)" : "COMMON YEAR (365d)")) | color(is_leap ? Color::Red : Color::Cyan)
+        }));
+
+        float year_ratio = static_cast<float>(day.dayOfYear) / (is_leap ? 366.0f : 365.0f);
+        auto astro_box = window(text(" 📊 METRICS ") | bold | color(Color::Green), vbox({
+            text("Year Progress: " + std::to_string(day.dayOfYear) + "/" + (is_leap ? "366" : "365")),
+            CustomProgressBar(year_ratio, 16),
+            separator(),
+            text("ABSOLUTE ID : #" + std::to_string(current_day_id)) | color(Color::Yellow),
+            text("ENGINEER    : Nemimeche Benaissa") | color(Color::Green),
+            text("PROJECT SYS : Gabary V2") | color(Color::Cyan)
+        }));
+
+        auto input_box = window(text(" ⌨️ INPUT DAY ID ") | bold | color(Color::Cyan), input_comp->Render());
+
+        auto right_column = vbox({
+            console_box,
+            astro_box,
+            input_box
+        }) | flex;
+
+        double max_days = 50000.0 * 365.2425;
+        float horizon_ratio = static_cast<float>(current_day_id / max_days);
+        std::stringstream ss;
+        ss << std::fixed << std::setprecision(4) << (current_day_id / max_days * 100.0) << "%";
+
+        auto horizon_gauge = window(text(" 🌌 50,000Y HORIZON TRACKER ") | bold | color(Color::Cyan), vbox({
+            hbox({
+                text("0Y "),
+                CustomProgressBar(horizon_ratio, 14),
+                text(" 50KY (" + ss.str() + ")")
+            }),
+            text("Absolute ID Index: #" + std::to_string(current_day_id)) | dim
+        }));
+
+        int64_t first_day_of_month_id = current_day_id - day.solarDay + 1;
+        int start_offset = static_cast<int>((first_day_of_month_id - 1) % 7);
+        if (start_offset < 0) start_offset += 7;
+
+        int total_month_days = (day.solarMonth == 2) ? (is_leap ? 29 : 28) : ((day.solarMonth % 2 == 1) ? 31 : 30);
+        
+        int prev_month = (day.solarMonth == 1) ? 12 : day.solarMonth - 1;
+        int prev_year = (day.solarMonth == 1) ? day.solarYear - 1 : day.solarYear;
+        bool prev_is_leap = (prev_year % 4 == 0 && prev_year % 100 != 0) || (prev_year % 400 == 0);
+        int prev_month_days = (prev_month == 2) ? (prev_is_leap ? 29 : 28) : ((prev_month % 2 == 1) ? 31 : 30);
+
+        auto days_header = hbox({
+            text("  Fr ") | color(Color::Red) | bold,
+            text("  Sa ") | color(Color::Yellow) | bold,
+            text("  Su ") | color(Color::White) | bold,
+            text("  Mo ") | color(Color::White) | bold,
+            text("  Tu ") | color(Color::White) | bold,
+            text("  We ") | color(Color::White) | bold,
+            text("  Th ") | color(Color::White) | bold
+        });
+
+        auto calendar_grid_box = window(text(" 📅 MONTHLY MATRIX (" + std::to_string(day.solarYear) + "-" + std::to_string(day.solarMonth) + ") ") | bold | color(Color::Yellow), vbox({
+            days_header,
+            separator(),
+            GenerateAcademicGrid(start_offset, total_month_days, day.solarDay, prev_month_days)
+        }));
+
+        auto perf_box = window(text(" ⚙️ SYSTEM BENCHMARK ") | bold | color(Color::Cyan), vbox({
+            text("Complexity : O(1) Constant Time") | color(Color::Green),
+            text("Memory     : < 1.0 MB Stack") | color(Color::Cyan),
+            text("Leap Rule  : 365.2425 Mean Days") | color(Color::Yellow)
+        }));
+
+        auto live_ticker_bar = window(text(" 📡 LIVE ENGINE STATUS ") | bold | color(Color::Red), vbox({
+            text("TARGET: " + full_date_str + " | ID: #" + std::to_string(current_day_id)) | color(Color::Yellow) | bold | hcenter
+        }));
+
+        auto hotkeys_bar = hbox({
+            text(" [<- / ->] Day ") | bgcolor(Color::Blue) | color(Color::White),
+            text(" "),
+            text(" [^ / v] Month ") | bgcolor(Color::Blue) | color(Color::White),
+            text(" "),
+            text(" [TAB] Nav ") | bgcolor(Color::GrayDark) | color(Color::White)
+        }) | hcenter;
+
+        return vbox({
+            text(" GABARY V2: TEMPORAL ENGINE DASHBOARD ") | bold | color(Color::Yellow) | hcenter,
+            hbox({ left_column, right_column }),
+            horizon_gauge,
+            calendar_grid_box,
+            perf_box,
+            live_ticker_bar,
+            hotkeys_bar
+        });
+    });
+
+    screen.Loop(renderer);
+    return 0;
 }

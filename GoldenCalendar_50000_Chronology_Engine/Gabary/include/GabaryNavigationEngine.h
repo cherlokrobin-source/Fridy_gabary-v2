@@ -33,3 +33,4 @@ private:
 
     GabaryDualCalendarEngine dualCalendarEngine;
 };
+#endif // GABARY_NAVIGATION_ENGINE_H
