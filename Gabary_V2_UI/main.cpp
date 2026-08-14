@@ -17,6 +17,10 @@
 
 using namespace ftxui;
 
+// ثوابت الأفق الزمني المزدوج
+const int64_t LUNAR_MAX_LIMIT = 17718350; // سقف 50,000 سنة قمرية
+const int64_t SOLAR_MAX_LIMIT = 18262125; // سقف 50,000 سنة شمسية
+
 std::string getCurrentSystemTime() {
     auto now = std::chrono::system_clock::now();
     auto in_time_t = std::chrono::system_clock::to_time_t(now);
@@ -48,17 +52,33 @@ int main() {
         try {
             if (!day_str.empty()) {
                 currentDayId = std::stoll(day_str);
+                if (currentDayId < 1) currentDayId = 1;
             }
         } catch (...) {}
 
         Gabary::GlobalSolarDay solarData = solarEngine.buildDay(currentDayId);
         GlobalLunarDay lunarData = LunarEngineV2::calculateLunarDay(currentDayId);
 
+        // --- منطق تجميد التقويم القمري عند 50,000 سنة قمرية ---
+        bool isLunarCompleted = (currentDayId >= LUNAR_MAX_LIMIT);
+        if (isLunarCompleted) {
+            lunarData.lunarYear = 50000;
+            lunarData.lunarMonth = 12;
+            lunarData.lunarDay = 30;
+            lunarData.phaseName = "FULL CYCLE DONE";
+            lunarData.phaseProgress = 1.0;
+        }
+
+        // نسبة التقدم في الأفق المزدوج
+        double lunarHorizonProgress = std::min(1.0, static_cast<double>(currentDayId) / LUNAR_MAX_LIMIT);
+        double solarHorizonProgress = std::min(1.0, static_cast<double>(currentDayId) / SOLAR_MAX_LIMIT);
+
         int solarTotalDays = solarData.leapYear ? 366 : 365;
 
         double solarProgress = static_cast<double>(solarData.dayOfYear) / static_cast<double>(solarTotalDays);
-        double lunarProgress = static_cast<double>(lunarData.lunarDay) / 30.0;
+        double lunarProgress = isLunarCompleted ? 1.0 : (static_cast<double>(lunarData.lunarDay) / 30.0);
 
+        // 1. LUNAR CARD
         auto lunarCard = window(
             text(" 🌙 LUNAR CALENDAR ") | bold | color(Color::Cyan),
             vbox({
@@ -66,7 +86,7 @@ int main() {
                     text("Date : ") | dim,
                     text(std::to_string(lunarData.lunarYear) + "-" + 
                          std::to_string(lunarData.lunarMonth) + "-" + 
-                         std::to_string(lunarData.lunarDay)) | color(Color::GreenLight) | bold
+                         std::to_string(lunarData.lunarDay)) | color(isLunarCompleted ? Color::Red : Color::GreenLight) | bold
                 }),
                 hbox({
                     text("Phase: ") | dim,
@@ -75,22 +95,24 @@ int main() {
                 separator(),
                 vbox({
                     text("Gauge:") | dim,
-                    gauge(lunarData.phaseProgress) | color(Color::Cyan)
+                    gauge(lunarProgress) | color(Color::Cyan)
                 })
             })
         );
 
+        // 2. CELESTIAL & CHRONO PANEL
         double julianDay = 1721425.5 + currentDayId;
         auto celestialCard = window(
             text(" 🔭 CELESTIAL & CHRONO ") | bold | color(Color::YellowLight),
             vbox({
                 hbox({text("Julian Day : ") | dim, text(std::to_string(julianDay).substr(0, 10)) | color(Color::Cyan)}),
                 hbox({text("Synodic    : ") | dim, text(std::to_string(lunarData.phaseProgress * 100.0).substr(0, 5) + "%") | color(Color::Magenta)}),
-                hbox({text("Solar Epoch: ") | dim, text("2,000,000Y") | color(Color::Green)}),
+                hbox({text("Lunar Status: ") | dim, text(isLunarCompleted ? "LOCKED (50KY)" : "ACTIVE") | color(isLunarCompleted ? Color::Red : Color::Green) | bold}),
                 hbox({text("Engine     : ") | dim, text("Golden Dual") | color(Color::Yellow)})
             })
         );
 
+        // 3. SOLAR MATRIX
         Elements solarGridRows;
         solarGridRows.push_back(text(" Fr Sa Su Mo Tu We Th ") | color(Color::Yellow) | bold);
 
@@ -137,6 +159,7 @@ int main() {
             vbox(solarGridRows)
         ) | flex;
 
+        // 4. LUNAR MATRIX
         Elements lunarGridRows;
         lunarGridRows.push_back(text(" Fr Sa Su Mo Tu We Th ") | color(Color::Cyan) | bold);
 
@@ -181,6 +204,7 @@ int main() {
             vbox(lunarGridRows)
         ) | flex;
 
+        // 5. SIGNATURE & REAL-TIME MARQUEE
         std::string fullBanner = " ★ GABARY V2 TEMPORAL SYSTEM ★ ARCHITECT: NEMISH BENAISSA ★ UNIVERSITÉ DJILLALI LIABÈS ★ 50,000Y CHRONOLOGY ENGINE ★ ";
         size_t bannerLength = fullBanner.length();
         std::string marqueeView = "";
@@ -208,6 +232,22 @@ int main() {
                 text("📅") | color(Color::Green),
                 text(" " + sysDate) | bold | color(Color::GreenLight)
             })
+        }));
+
+        // 6. DUAL HORIZON TRACKER PANEL
+        auto horizonPanel = window(text(" 🌌 DUAL 50,000Y HORIZON TRACKER "), vbox({
+            hbox({
+                text("🌙 Lunar Horizon (17.71M d): [") | color(Color::Cyan),
+                gauge(lunarHorizonProgress) | color(Color::Cyan),
+                text("] " + std::to_string(lunarHorizonProgress * 100.0).substr(0, 5) + "% ") | bold | color(Color::CyanLight),
+                text(isLunarCompleted ? " 🔒 [MAX 50KY REACHED]" : "") | color(Color::Red) | bold
+            }),
+            hbox({
+                text("☀️ Solar Horizon (18.26M d): [") | color(Color::Yellow),
+                gauge(solarHorizonProgress) | color(Color::Yellow),
+                text("] " + std::to_string(solarHorizonProgress * 100.0).substr(0, 5) + "% ") | bold | color(Color::YellowLight)
+            }),
+            text("Absolute Day ID Index: #" + std::to_string(currentDayId)) | dim
         }));
 
         return vbox({
@@ -265,14 +305,7 @@ int main() {
 
             separator(),
 
-            window(text(" 🌌 50,000Y HORIZON TRACKER "), vbox({
-                hbox({
-                    text("0Y [") | dim,
-                    gauge(static_cast<double>(currentDayId) / 18262125.0) | color(Color::Cyan),
-                    text("] 50KY (" + std::to_string((static_cast<double>(currentDayId) / 18262125.0) * 100.0).substr(0, 6) + "%)") | dim
-                }),
-                text("Absolute ID Index: #" + std::to_string(currentDayId)) | dim
-            })),
+            horizonPanel,
 
             separator(),
 
