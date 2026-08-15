@@ -1,36 +1,47 @@
-cmake_minimum_required(VERSION 3.11)
-project(gabary_tui CXX)
+cmake_minimum_required(VERSION 3.14)
+project(FridyGabaryV2 CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-include(FetchContent)
-FetchContent_Declare(
-  ftxui
-  GIT_REPOSITORY https://github.com/ArthurSonzogni/ftxui
-  GIT_TAG v5.0.0
+include_directories(
+    ${CMAKE_CURRENT_SOURCE_DIR}/include
+    ${CMAKE_CURRENT_SOURCE_DIR}/include/report
 )
-FetchContent_MakeAvailable(ftxui)
 
-file(GLOB_RECURSE ALL_HEADERS "*.h" "*.hpp")
-set(INCLUDE_DIRS "")
-foreach(HEADER ${ALL_HEADERS})
-  get_filename_component(DIR ${HEADER} DIRECTORY)
-  list(APPEND INCLUDE_DIRS ${DIR})
-endforeach()
-list(REMOVE_DUPLICATES INCLUDE_DIRS)
+set(CORE_SOURCES
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ArchiveEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/ChronologyEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GabaryDualCalendarEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalSolarDay.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/GlobalTemporalID.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/LeapYearRules.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/LongTimeEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/LunarEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/LunarEngineV2.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarArchiveBuilder.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarCycleArchive.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarCycleEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarEngineV2.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarTimeEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarTimelineArchive.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/SolarTimelineGenerator.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalCoordinate.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalCoordinateEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalEngineV2.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalQueryEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalReportEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TemporalReportJSON.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/TimeEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/WeekCycleEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/WeekEngine.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/cycle_reference_compare.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/engine_cycle_compare.cpp"
+)
 
-include_directories(${INCLUDE_DIRS} ${CMAKE_CURRENT_SOURCE_DIR})
+add_library(fridey_core STATIC ${CORE_SOURCES})
 
-file(GLOB_RECURSE ALL_SOURCES "Gabary_V2_UI/*.cpp")
-
-set(SOURCES "")
-foreach(SRC ${ALL_SOURCES})
-  if(NOT SRC MATCHES "ftxui_src" AND NOT SRC MATCHES "test" AND NOT SRC MATCHES "build" AND NOT SRC MATCHES "console/main.cpp" AND NOT SRC MATCHES "src/main.cpp")
-    list(APPEND SOURCES ${SRC})
-  endif()
-endforeach()
-
-add_executable(gabary_tui ${SOURCES})
-
-target_link_libraries(gabary_tui PRIVATE ftxui::screen ftxui::dom ftxui::component)
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/Gabary_V2_UI")
+    add_subdirectory(Gabary_V2_UI)
+endif()

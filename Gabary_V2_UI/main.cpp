@@ -1,3 +1,8 @@
+#include "GlobalLunarDay.h"
+#include "GlobalSolarDay.h"
+#include "SolarEngineV2.h"
+#include "LunarEngineV2.h"
+using namespace Gabary;
 #include <ftxui/dom/elements.hpp>
 #include <ftxui/screen/screen.hpp>
 #include <ftxui/component/component.hpp>
@@ -57,7 +62,17 @@ int main() {
         } catch (...) {}
 
         Gabary::GlobalSolarDay solarData = solarEngine.buildDay(currentDayId);
-        GlobalLunarDay lunarData = LunarEngineV2::calculateLunarDay(currentDayId);
+       LunarEngineV2 lunarEngine;
+Date lDate = lunarEngine.getDate(currentDayId);
+
+GlobalLunarDay lunarData;
+lunarData.lunarYear = lDate.year;
+lunarData.lunarMonth = lDate.month;
+lunarData.lunarDay = lDate.day;
+lunarData.phaseName = "LUNAR PHASE";
+lunarData.phaseProgress = static_cast<double>(lDate.day) / 30.0;
+lunarData.phaseIcon = "🌙";
+
 
         // --- منطق تجميد التقويم القمري عند 50,000 سنة قمرية ---
         bool isLunarCompleted = (currentDayId >= LUNAR_MAX_LIMIT);
