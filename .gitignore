@@ -1,0 +1,8 @@
+**/ftxui_src/
+**/build/
+**/*.tar.gz
+**/*.o
+**/*.a
+**/*.so
+GoldenCalendar_BACKUP/
+.git_MAIN_BACKUP_*/
