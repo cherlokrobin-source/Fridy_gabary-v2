@@ -1,3 +1,5 @@
+![Gabary V2 Master Chrono Dashboard](dashboard.jpg)
+
 # 🌌 Gabary V2 & Djomoa Temporal Engine
 > **High-Performance Deterministic Calendar Engine & TUI Dashboard for 50,000-Year Horizon Tracking**
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/)
@@ -11,8 +13,8 @@
   <img src="docs/assets/dashboard_screenshot.jpg" alt="Gabary V2 TUI Dashboard" width="800px" style="border-radius: 8px;">
   <p><em>Gabary V2 Dashboard running natively on Termux (Android) - Featuring real-time dual calendar synchronization matrix and system metrics.</em></p>
 </div>
----
-## 📌 Executive Summary & Project Significance
+
+---## 📌 Executive Summary & Project Significance
 **Gabary V2** is an advanced, high-precision Terminal User Interface (TUI) dashboard built around the **Djomoa Solar Engine V2**. It is engineered to solve a fundamental challenge in long-range computational chronometry: **calculating and visualizing absolute time tracking over a 50,000-year horizon in constant time $\mathcal{O}(1)$ without relying on iterative date loops or heavy database indexing.**
 ### 💡 Why It Matters to Systems Engineers:
 1. **Zero-Iteration Chronometry:** Standard date libraries often rely on sequential iteration or cache tables for massive temporal offsets. Djomoa Engine computes calendar attributes strictly using deterministic algebraic transformations.
@@ -64,3 +66,4 @@ make -j$(nproc)
 <div align="center">
 <sub>Developed by <b>Nemimeche Benaissa</b> | Sidi Bel Abbès, Algeria 🇩🇿</sub>
 </div>
+\![Gabary V2 Master Chrono Dashboard](dashboard.jpg)
