@@ -3,10 +3,10 @@
 <head><meta charset="UTF-8"></head>
 <body>
 <script>
-  const urlParams = new URLSearchParams(window.location.search);
-  let year = parseInt(urlParams.get('year') || "2026");
-  let month = parseInt(urlParams.get('month') || "9");
-  let day = parseInt(urlParams.get('day') || "5");
+  const params = new URLSearchParams(window.location.search);
+  let year = parseInt(params.get('year') || "2026");
+  let month = parseInt(params.get('month') || "9");
+  let day = parseInt(params.get('day') || "5");
 
   let y = year, m = month, d = day;
   if (m <= 2) { y -= 1; m += 12; }
@@ -17,7 +17,6 @@
   let lunarSync = ((day * 0.032) % 1.0).toFixed(4);
   let solarSync = (((day + 10) * 0.025) % 1.0).toFixed(4);
 
-  // طباعة النتيجة بصيغة CSV ليقرأها Google Sheets مباشرة
   document.write(`${jdn},${lunarSync},${solarSync}`);
 </script>
 </body>
