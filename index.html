@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"></head>
+<body>
+<script>
+  const urlParams = new URLSearchParams(window.location.search);
+  let year = parseInt(urlParams.get('year') || "2026");
+  let month = parseInt(urlParams.get('month') || "9");
+  let day = parseInt(urlParams.get('day') || "5");
+
+  let y = year, m = month, d = day;
+  if (m <= 2) { y -= 1; m += 12; }
+  let a = Math.floor(y / 100);
+  let b = 2 - a + Math.floor(a / 4);
+  let jdn = Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + b - 1524;
+
+  let lunarSync = ((day * 0.032) % 1.0).toFixed(4);
+  let solarSync = (((day + 10) * 0.025) % 1.0).toFixed(4);
+
+  // طباعة النتيجة بصيغة CSV ليقرأها Google Sheets مباشرة
+  document.write(`${jdn},${lunarSync},${solarSync}`);
+</script>
+</body>
+</html>
